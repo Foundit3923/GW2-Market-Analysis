@@ -1,22 +1,7 @@
 import urllib.parse
 import requests
 
-main_api = 'https://api.guildwars2.com/v2'
 
-
-sub_api = '/commerce/listings'
-index_number = '/19699'
-url = main_api + sub_api + index_number
-print(url)
-
-json_data = requests.get(url).json()
-print(json_data)
-for item in json_data:
-    #print(key)
-    for key in item:
-        #print(sub_key)
-        if(key == 'name'):
-            print(item[key])
 
 """ Dictionary keys in Items Json request:
 'id'            (number) = Item id
@@ -56,9 +41,37 @@ for item in json_data:
                                      Necromancer, Ranger, Theif, Warrior
 'details'       (object, optional) = Additional item details if applicable, depending on the type of the item
 """
-json_dictionary_keys = {'basic' : ['id','name','type'], 'all' : ['chat_link','name','icon','description','type','rarity','level','vendor_value','default_skin','flags','game_types','restrictions','details']}
 
-dictionary_all_items = {}
+""" Separates ID numbers into groups of 200 and stores them in a list"""
+def count_by_200(main_api, sub_api):
+    ids = get_json_data_ids_only(main_api, sub_api)
+    index_number_list = []
+    index_numbers = ""
+    count = 0
+    list_count = 0
+    for i in ids:
+        if(count < 200):
+            if(count == 199):
+                index_numbers += str(i)
+                count = count + 1
+            elif(i == ids[len(ids) - 1]):
+                index_number_list.append(index_numbers)
+            else:
+                temp = str(i) + ", "
+                index_numbers += temp
+                count = count + 1
+        else:
+            index_number_list.append(index_numbers)
+            count = 0
+            index_numbers = ""
+    return index_number_list
+
+
+""" Returns all ids associated with a sub_api """
+def get_json_data_ids_only(main_api, sub_api):
+    url = main_api + sub_api
+    json_data = requests.get(url).json()
+    return json_data
 
 def update_dictionary_all_items():
     for item in json_data:
@@ -84,5 +97,44 @@ def get_all():
         print(key + ': ' + json_data[key])
         dictionary_all_items[json_data['id']].update(key,json_data['key'])
 
-update_dictionary_all_items()
+
+
+
+"""Guild Wars 2 Base API URL"""
+main_api = 'https://api.guildwars2.com/v2'
+
+""" Sub-category of API URL call for single item"""
+single_item_sub_api = '/commerce/listings'
+
+""" Sub-category of API URL call for up to 200 items"""
+multi_item_sub_api = '/commerce/listings?ids='
+
+""" List of sub-category index numbers split into largest usable segments"""
+index_number_list = count_by_200(main_api, single_item_sub_api)
+
+index_number = '/19699'
+
+""" Create API call url, indicate which group of 200 to call using index_number_list"""
+url = main_api + multi_item_sub_api + index_number_list[0]
+print(url)
+
+""" Perform api call """
+json_data = requests.get(url).json()
+print(json_data)
+for list_item in json_data:
+    #print(key)
+    for key in list_item:
+        #print(sub_key)
+        if(key == 'name'):
+            print(list_item[key])
+        elif(key == 'id'):
+            print(list_item[key])
+
+json_dictionary_keys = {'basic' : ['id','name','type'], 'all' : ['chat_link','name','icon','description','type','rarity','level','vendor_value','default_skin','flags','game_types','restrictions','details']}
+
+dictionary_all_items = {}
+
+print(len(index_number_list))
+
+"""update_dictionary_all_items()"""
 
